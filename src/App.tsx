@@ -1,6 +1,9 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import reference from './reference.json';
 import imageMap from './imageMap.json';
+import checkouts from './checkouts.json';
+import {sales as ui} from './sales';
+import Consent,{trackCheckoutClick} from './Consent';
 
 type Lang = 'pt'|'en'|'it';
 const ASSET_BASE = '/';
@@ -8,11 +11,6 @@ const answers = {
  pt:['É totalmente digital. Nenhum material físico será enviado, mas você pode imprimir se quiser.','Após a confirmação do pagamento, você recebe o acesso por e-mail imediatamente.','Sim, pode estudar pelo celular, tablet ou computador.','Não, o pagamento é único, sem cobrança recorrente.','Você tem 30 dias de garantia. Se não gostar, devolvemos seu dinheiro sem burocracia.'],
  en:['It is entirely digital. No physical material will be sent, but you can print it if you wish.','Once payment is confirmed, access is sent to you immediately by email.','Yes. You can study on your phone, tablet or computer.','No. It is a one-time payment, with no recurring subscription.','There is a 30-day guarantee. If it is not for you, your money is refunded without hassle.'],
  it:['È interamente digitale. Non verrà spedito alcun materiale fisico, ma puoi stamparlo se lo desideri.','Dopo la conferma del pagamento, ricevi immediatamente l’accesso via email.','Sì, puoi studiare dal telefono, dal tablet o dal computer.','No, il pagamento è unico e non prevede un abbonamento ricorrente.','Hai una garanzia di 30 giorni. Se non fa per te, il denaro viene rimborsato senza complicazioni.']
-};
-const ui = {
- pt:{preview:'Prévia da referência · compra desativada',title:'Cópia para revisão',message:'Esta é uma reprodução privada da página de referência, com os seus preços, imagens e textos, para comparar as versões de idioma. Os depoimentos pertencem à referência e não foram verificados como testemunhos de uma oferta própria. O contador está estático. Nenhuma compra é processada nesta prévia.',close:'Fechar',prev:'Depoimento anterior',next:'Próximo depoimento',go:'Ir para depoimento'},
- en:{preview:'Reference preview · checkout disabled',title:'Copy for review',message:'This is a private reproduction of the reference page, including its prices, images and wording, for comparing language versions. Testimonials belong to the reference and have not been verified as reviews of a separate offer. The timer is static. No purchase is processed in this preview.',close:'Close',prev:'Previous testimonial',next:'Next testimonial',go:'Go to testimonial'},
- it:{preview:'Anteprima di riferimento · acquisto disattivato',title:'Copia da revisionare',message:'Questa è una riproduzione privata della pagina di riferimento, con prezzi, immagini e testi originali, per confrontare le versioni linguistiche. Le testimonianze appartengono alla pagina di riferimento e non sono state verificate come recensioni di una nuova offerta. Il timer è statico. Questa anteprima non elabora acquisti.',close:'Chiudi',prev:'Testimonianza precedente',next:'Testimonianza successiva',go:'Vai alla testimonianza'}
 };
 function initialLanguage():Lang {
  const match=location.pathname.match(/^\/(pt|en|it)(?:\/|$)/);
@@ -23,6 +21,8 @@ function initialLanguage():Lang {
 export default function App(){
  const [lang,setLang]=useState<Lang>(initialLanguage);
  const [dialog,setDialog]=useState(false);
+ const [mode,setMode]=useState<'upgrade'|'terms'|'privacy'|'pending'>('upgrade');
+ const buy=(plan:keyof typeof checkouts)=>{const url=checkouts[plan];if(!url){setMode('pending');setDialog(true);return;}trackCheckoutClick(plan,{basic:3.90,premium:4.99,upgrade:4.40}[plan]);const link=new URL(url);link.searchParams.set('locale',lang==='pt'?'pt_PT':lang);location.assign(link.toString());};
  const area=useRef<HTMLDivElement>(null);
  const t=ui[lang];
  const rendered=useMemo(()=>{
@@ -60,10 +60,12 @@ export default function App(){
    else if(label.startsWith('Ir para depoimento'))button.setAttribute('aria-label',ui[lang].go+' '+label.match(/\d+/)?.[0]);
   });
   template.content.querySelectorAll('button[aria-expanded]').forEach((button,index)=>button.setAttribute('data-faq-index',String(index)));
+  template.content.querySelectorAll('a').forEach(a=>{if(a.textContent?.trim()===reference.text[lang][78])a.setAttribute('href',checkouts.premium||'#');});
+  const planHeading=template.content.querySelector('#planos h2');if(planHeading)planHeading.textContent={pt:'Escolha como quer começar',en:'Choose how to start',it:'Scegli come iniziare'}[lang];
   return template.innerHTML;
  },[lang]);
  useEffect(()=>{
-  document.documentElement.lang=lang==='pt'?'pt-BR':lang==='it'?'it-IT':'en';
+  document.documentElement.lang=lang==='pt'?'pt-PT':lang==='it'?'it-IT':'en';
   document.title=reference.text[lang][93];
   try{localStorage.setItem('replica-language',lang);}catch{}
   const back=()=>setLang(initialLanguage());window.addEventListener('popstate',back);
@@ -88,19 +90,20 @@ export default function App(){
    if(label==='Depoimento anterior'){show(slide-1);return;}
    if(label==='Próximo depoimento'){show(slide+1);return;}
    if(label.startsWith('Ir para depoimento')){show(Number(label.match(/\d+/)?.[0])-1);return;}
-   if(target.tagName==='A'){event.preventDefault();setDialog(true);return;}
+   if(target.tagName==='A'){event.preventDefault();const label=target.textContent?.trim();if(label===reference.text[lang][94]||label===reference.text[lang][95]){setMode(label===reference.text[lang][94]?'terms':'privacy');setDialog(true);}else buy('premium');return;}
    const text=target.textContent?.trim()||'';
    if([reference.text[lang][5],reference.text[lang][26]].includes(text)){document.getElementById('planos')?.scrollIntoView({behavior:'auto'});return;}
-   if(text){event.preventDefault();setDialog(true);}
+   if(text===reference.text[lang][64]){event.preventDefault();setMode('upgrade');setDialog(true);return;}
+   if(text){event.preventDefault();buy('premium');}
   };
   root.addEventListener('click',click);return()=>root.removeEventListener('click',click);
  },[rendered,lang]);
  useEffect(()=>{
   if(!dialog)return;const previous=document.activeElement as HTMLElement|null;
   const button=document.querySelector<HTMLButtonElement>('.replica-dialog button');button?.focus();
-  const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setDialog(false);if(e.key==='Tab'){e.preventDefault();button?.focus();}};
+  const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setDialog(false);if(e.key==='Tab'){const items=[...document.querySelectorAll<HTMLButtonElement>('.replica-dialog button')];const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}}};
   document.addEventListener('keydown',key);return()=>{document.removeEventListener('keydown',key);previous?.focus();};
  },[dialog]);
  const change=(next:Lang)=>{setLang(next);history.pushState({},'',`/${next}${location.hash}`);};
- return <><div ref={area} dangerouslySetInnerHTML={{__html:rendered}}/><div className="replica-languages" role="group" aria-label="Language / Idioma"><button onClick={()=>change('pt')} aria-pressed={lang==='pt'}>Português</button><button onClick={()=>change('en')} aria-pressed={lang==='en'}>English</button><button onClick={()=>change('it')} aria-pressed={lang==='it'}>Italiano</button><small>{t.preview}</small></div>{dialog&&<div className="replica-dialog" role="dialog" aria-modal="true" aria-labelledby="copy-title"><div><h2 id="copy-title">{t.title}</h2><p>{t.message}</p><button onClick={()=>setDialog(false)}>{t.close}</button></div></div>}</>;
+ return <><Consent lang={lang}/><div ref={area} dangerouslySetInnerHTML={{__html:rendered}}/><div className="replica-languages" role="group" aria-label="Language / Idioma"><button onClick={()=>change('pt')} aria-pressed={lang==='pt'}>Português</button><button onClick={()=>change('en')} aria-pressed={lang==='en'}>English</button><button onClick={()=>change('it')} aria-pressed={lang==='it'}>Italiano</button><small>{t.preview}</small></div>{dialog&&<div className="replica-dialog" role="dialog" aria-modal="true" aria-labelledby="copy-title"><div><h2 id="copy-title">{mode==='upgrade'?t.title:mode==='terms'?t.terms:mode==='privacy'?t.privacy:t.pending}</h2><p>{mode==='upgrade'?t.message:mode==='terms'?t.termsText:mode==='privacy'?t.privacyText:t.pending}</p>{mode==='upgrade'&&<><button onClick={()=>buy('upgrade')}>{t.accept}</button><button className="secondary-choice" onClick={()=>buy('basic')}>{t.decline}</button></>}<button className="secondary-choice" onClick={()=>setDialog(false)}>{t.close}</button></div></div>}</>;
 }
