@@ -22,7 +22,7 @@ export default function App(){
  const [lang,setLang]=useState<Lang>(initialLanguage);
  const [dialog,setDialog]=useState(false);
  const [mode,setMode]=useState<'upgrade'|'terms'|'privacy'|'pending'>('upgrade');
- const buy=(plan:keyof typeof checkouts)=>{const url=checkouts[plan];if(!url){setMode('pending');setDialog(true);return;}trackCheckoutClick(plan,{basic:3.90,premium:4.99,upgrade:4.40}[plan]);const link=new URL(url);link.searchParams.set('locale',lang==='pt'?'pt_PT':lang);location.assign(link.toString());};
+ const buy=(plan:keyof typeof checkouts)=>{const url=checkouts[plan];if(!url){setMode('pending');setDialog(true);return;}trackCheckoutClick(plan,{basic:3.90,premium:4.99,upgrade:4.40}[plan]);const link=new URL(url);location.assign(link.toString());};
  const area=useRef<HTMLDivElement>(null);
  const t=ui[lang];
  const rendered=useMemo(()=>{
