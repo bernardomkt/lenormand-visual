@@ -21,3 +21,7 @@ Checkouts reais em `src/checkouts.json`, gerados pela Hotmart. Não guardar cred
 ## Estrutura
 
 `src/`: aplicação, textos, consentimento e configuração de links. `public/`: imagens localizadas. `dist/`: resultado gerado, ignorado no Git. PDFs e fontes editoriais são entregues separadamente ao proprietário.
+
+## Integração verificada
+
+Pixel Meta público: `1144155668109824` (Lenormand Visual — PT EN IT). A integração Web dos dois produtos Hotmart está configurada para visitas ao checkout e vendas com valor da transação. Nos testes, a Meta processou PageView, ViewContent, CheckoutClick e entrada no checkout. O consentimento foi testado antes de aceitar, após recusar e depois de retirar a aceitação. A validação de uma compra paga e a integração opcional da API de Conversões ficam separadas; não guardar tokens neste código.
