@@ -52,6 +52,13 @@ export default function App(){
    if(lang!=='pt')img.alt=(lang==='en'?'Translated product image ':'Immagine del prodotto tradotta ')+(index+1);
    img.loading='eager';
   });
+  const testimonialSection=template.content.querySelector('[data-testimonial]')?.closest('section');
+  if(testimonialSection){
+   const note=document.createElement('p');
+   note.className='mt-4 text-center text-sm text-muted-foreground';
+   note.textContent={pt:'Conversas originais em português. Experiências individuais.',en:'Translated from the original Portuguese conversations. Individual experiences.',it:'Traduzioni delle conversazioni originali in portoghese. Esperienze individuali.'}[lang];
+   testimonialSection.append(note);
+  }
   template.content.querySelectorAll('button[aria-label]').forEach(button=>{
    const label=button.getAttribute('aria-label')||'';
    button.setAttribute('data-original-label',label);
